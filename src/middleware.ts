@@ -1,29 +1,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwt } from "jsonwebtoken";
+import { jwtVerify } from "jose";
 
-export function middleware(req: NextRequest) {
-  const token =
-    req.cookies.get("token")?.value;
+export async function middleware(req: NextRequest) {
+  const token = req.cookies.get("token")?.value;
 
   const { pathname } = req.nextUrl;
 
-  // rutas públicas
-  const publicRoutes = [
-    "/login",
-    "/checker",
-  ];
+  const publicRoutes = ["/login", "/checker"];
 
-  const isPublic =
-    publicRoutes.some((route) =>
-      pathname.startsWith(route)
-    );
+  const isPublic = publicRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
 
   if (isPublic) {
     return NextResponse.next();
   }
 
-   // no token
+  // no token
   if (!token) {
     return NextResponse.redirect(
       new URL("/login", req.url)
@@ -31,19 +25,19 @@ export function middleware(req: NextRequest) {
   }
 
   try {
-    // verificar JWT
-    const decoded = jwt.verify(
+    const secret = new TextEncoder().encode(
+      process.env.JWT_SECRET
+    );
+
+    const { payload } = await jwtVerify(
       token,
-      process.env.JWT_SECRET!
-    ) as {
-      id: string;
-      role: string;
-    };
+      secret
+    );
 
     // SOLO ADMIN
     if (
       pathname.startsWith("/dashboard/users") &&
-      decoded.role !== "ADMIN"
+      payload.role !== "ADMIN"
     ) {
       return NextResponse.redirect(
         new URL("/dashboard", req.url)
