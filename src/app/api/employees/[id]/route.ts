@@ -1,42 +1,73 @@
-import { NextResponse } from "next/server";
-import { connectDB } from "@/src/lib/db";
-import Employee from "@/src/models/Employee";
+import { NextRequest, NextResponse } from 'next/server';
+import { connectDB } from '@/lib/db';
+import Employee from '@/models/Employee';
 
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  await connectDB();
-
-  const employee = await Employee.findById(params.id);
-
-  return NextResponse.json(employee);
+  try {
+    const { id } = await params; 
+    await connectDB();
+    const employee = await Employee.findById(id);
+    
+    if (!employee) {
+      return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
+    }
+    
+    return NextResponse.json(employee);
+  } catch (error) {
+    console.error('Error al obtener empleado:', error);
+    return NextResponse.json({ error: 'Error al obtener empleado' }, { status: 500 });
+  }
 }
 
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> } 
 ) {
-  await connectDB();
-
-  const body = await req.json();
-
-  const updated = await Employee.findByIdAndUpdate(
-    params.id,
-    body,
-    { new: true }
-  );
-
-  return NextResponse.json(updated);
+  try {
+    const { id } = await params; 
+    const body = await request.json();
+    await connectDB();
+    
+    console.log('Actualizando empleado:', id);
+    console.log('Datos recibidos:', body);
+    
+    const employee = await Employee.findByIdAndUpdate(
+      id, 
+      body, 
+      { new: true, runValidators: true }
+    );
+    
+    if (!employee) {
+      return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
+    }
+    
+    console.log('Empleado actualizado:', employee);
+    return NextResponse.json(employee);
+  } catch (error) {
+    console.error('Error al actualizar:', error);
+    return NextResponse.json({ error: 'Error al actualizar' }, { status: 500 });
+  }
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  await connectDB();
-
-  await Employee.findByIdAndDelete(params.id);
-
-  return NextResponse.json({ ok: true });
+  try {
+    const { id } = await params;
+    await connectDB();
+    const employee = await Employee.findByIdAndDelete(id);
+    
+    if (!employee) {
+      return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
+    }
+    
+    return NextResponse.json({ message: 'Empleado eliminado correctamente' });
+  } catch (error) {
+    console.error('Error al eliminar:', error);
+    return NextResponse.json({ error: 'Error al eliminar' }, { status: 500 });
+  }
 }

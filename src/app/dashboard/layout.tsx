@@ -60,6 +60,7 @@ useEffect(() => {
 
         <nav className="p-3 flex flex-col gap-1">
           <LinkItem href="/dashboard" label="Inicio" />
+          <LinkItem href="/dashboard/viewer" label="Visualizador" />
           <LinkItem href="/dashboard/employees" label="Prestadores" />
           <LinkItem href="/dashboard/attendance" label="Asistencias" />
           <LinkItem href="/dashboard/justifications" label="Justificaciones" />

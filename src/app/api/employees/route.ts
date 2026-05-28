@@ -1,43 +1,36 @@
-import { NextResponse } from "next/server";
-import { connectDB } from "../../../lib/db";
-import Employee from "../../../models/Employee";
-import { employeeSchema } from "../../../lib/validators/employee";
-
-function addSixMonths(date: Date) {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + 6);
-  return d;
-}
+// app/api/employees/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { connectDB } from '@/lib/db';
+import Employee from '@/models/Employee';
 
 export async function GET() {
-  await connectDB();
-
-  const employees = await Employee.find().sort({ createdAt: -1 });
-
-  return NextResponse.json(employees);
+  try {
+    await connectDB();
+    const employees = await Employee.find({}).sort({ createdAt: -1 });
+    return NextResponse.json(employees);
+  } catch (error) {
+    console.error('Error al obtener empleados:', error);
+    return NextResponse.json({ error: 'Error al obtener empleados' }, { status: 500 });
+  }
 }
 
-export async function POST(req: Request) {
-  await connectDB();
-
-  const body = await req.json();
-
-  const parsed = employeeSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.flatten() },
-      { status: 400 }
-    );
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    await connectDB();
+    
+    // Asegurar que workSchedule existe
+    if (!body.workSchedule) {
+      body.workSchedule = {
+        startTime: '09:00',
+        endTime: '13:00'
+      };
+    }
+    
+    const employee = await Employee.create(body);
+    return NextResponse.json(employee, { status: 201 });
+  } catch (error) {
+    console.error('Error al crear empleado:', error);
+    return NextResponse.json({ error: 'Error al crear empleado' }, { status: 500 });
   }
-
-  const data = parsed.data;
-
-  const employee = await Employee.create({
-    ...data,
-    startDate: new Date(data.startDate),
-    endDate: addSixMonths(new Date(data.startDate)),
-  });
-
-  return NextResponse.json(employee);
 }
