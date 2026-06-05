@@ -1,10 +1,10 @@
 // app/dashboard/users/components/UserFormModal.tsx
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 
@@ -24,33 +24,58 @@ interface UserFormModalProps {
 }
 
 export function UserFormModal({ open, onOpenChange, editingUser, onSuccess }: UserFormModalProps) {
+  // Estado controlado del formulario
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    role: 'VIEWER' as 'ADMIN' | 'VIEWER',
+    active: true,
+  });
+  const [loading, setLoading] = useState(false);
+
+  // Cargar datos del usuario cuando se abre el modal en modo edición
+  useEffect(() => {
+    if (open && editingUser) {
+      console.log('Cargando usuario para editar:', editingUser); // Debug
+      setFormData({
+        username: editingUser.username,
+        password: '',
+        role: editingUser.role,
+        active: editingUser.active,
+      });
+    } else if (open && !editingUser) {
+      // Resetear formulario para nuevo usuario
+      setFormData({
+        username: '',
+        password: '',
+        role: 'VIEWER',
+        active: true,
+      });
+    }
+  }, [open, editingUser]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const formDataObj = new FormData(form);
-    
-    const data = {
-      username: formDataObj.get('username') as string,
-      password: formDataObj.get('password') as string,
-      role: formDataObj.get('role') as 'ADMIN' | 'VIEWER',
-      active: formDataObj.get('active') === 'true',
-    };
+    setLoading(true);
 
     try {
       if (editingUser) {
+        // Actualizar usuario existente
         const updateData: any = {
           id: editingUser._id,
-          role: data.role,
-          active: data.active,
+          role: formData.role,
+          active: formData.active,
         };
         
-        if (data.username !== editingUser.username) {
-          updateData.username = data.username;
+        if (formData.username !== editingUser.username) {
+          updateData.username = formData.username;
         }
         
-        if (data.password) {
-          updateData.password = data.password;
+        if (formData.password && formData.password.trim() !== '') {
+          updateData.password = formData.password;
         }
+        
+        console.log('Enviando actualización:', updateData); // Debug
         
         const res = await fetch('/api/users', {
           method: 'PUT',
@@ -67,10 +92,11 @@ export function UserFormModal({ open, onOpenChange, editingUser, onSuccess }: Us
           toast.error(error.error || 'Error al actualizar');
         }
       } else {
+        // Crear nuevo usuario
         const res = await fetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: JSON.stringify(formData),
         });
         
         if (res.ok) {
@@ -83,7 +109,10 @@ export function UserFormModal({ open, onOpenChange, editingUser, onSuccess }: Us
         }
       }
     } catch (error) {
+      console.error('Error:', error);
       toast.error('Ocurrió un error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -126,8 +155,10 @@ export function UserFormModal({ open, onOpenChange, editingUser, onSuccess }: Us
                 <Input
                   id="username"
                   name="username"
-                  defaultValue={editingUser?.username || ''}
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   required
+                  className="w-full"
                 />
               </div>
               
@@ -140,11 +171,14 @@ export function UserFormModal({ open, onOpenChange, editingUser, onSuccess }: Us
                   id="password"
                   name="password"
                   type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required={!editingUser}
+                  className="w-full"
                 />
               </div>
               
-              {/* Select nativo de HTML en lugar de shadcn */}
+              {/* Select de rol */}
               <div>
                 <Label htmlFor="role" className="block mb-2">
                   Rol
@@ -152,22 +186,35 @@ export function UserFormModal({ open, onOpenChange, editingUser, onSuccess }: Us
                 <select
                   id="role"
                   name="role"
-                  defaultValue={editingUser?.role || 'VIEWER'}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'ADMIN' | 'VIEWER' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 >
                   <option value="ADMIN">Administrador</option>
                   <option value="VIEWER">Visualizador</option>
                 </select>
               </div>
               
-              {/* Switch de estado activo */}
-              <div className="flex items-center justify-between pt-2">
-                <Label htmlFor="active">Usuario Activo</Label>
-                <Switch
+              {/* Select de estado activo (reemplaza el Switch) */}
+              <div>
+                <Label htmlFor="active" className="block mb-2">
+                  Estado del Usuario
+                </Label>
+                <select
                   id="active"
                   name="active"
-                  defaultChecked={editingUser?.active !== undefined ? editingUser.active : true}
-                />
+                  value={formData.active ? "true" : "false"}
+                  onChange={(e) => setFormData({ ...formData, active: e.target.value === "true" })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="true">Activo</option>
+                  <option value="false">Inactivo</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.active 
+                    ? '✅ El usuario puede iniciar sesión' 
+                    : '❌ El usuario no podrá acceder al sistema'}
+                </p>
               </div>
             </div>
 
@@ -177,11 +224,12 @@ export function UserFormModal({ open, onOpenChange, editingUser, onSuccess }: Us
                 type="button" 
                 variant="outline" 
                 onClick={handleClose}
+                disabled={loading}
               >
                 Cancelar
               </Button>
-              <Button type="submit">
-                {editingUser ? 'Actualizar' : 'Crear'}
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Guardando...' : (editingUser ? 'Actualizar' : 'Crear')}
               </Button>
             </div>
           </form>

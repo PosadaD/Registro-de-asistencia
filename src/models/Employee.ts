@@ -9,10 +9,10 @@ const EmployeeSchema = new mongoose.Schema(
     shortRfc: String,
     curp: String,
 
-    fingerprintId: {
-      type: String,
-      unique: true,
-      sparse: true, // Permite que empleados sin huella (ej. administrativos) existan
+    faceDescriptor: {
+      type: [Number], // Array de números (Float32Array convertido)
+      required: false,
+      index: true,
     },
 
     immediateBoss: String,

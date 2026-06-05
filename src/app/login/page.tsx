@@ -1,98 +1,104 @@
-"use client";
+// app/login/page.tsx
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Button } from "../../components/ui/button";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { Loader2, Fingerprint } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+  });
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
 
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
-      setError(data.error || "Error de login");
+      if (res.ok && data.success) {
+        toast.success(`Bienvenido ${data.user.username}`);
+        // Redirigir según el rol
+        router.push(data.redirectTo);
+      } else {
+        toast.error(data.error || 'Error al iniciar sesión');
+      }
+    } catch (error) {
+      toast.error('Error de conexión');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    window.location.href = "/dashboard";
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <Card className="w-full max-w-sm shadow-xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">
-            Sistema de Asistencia
-          </CardTitle>
-          <p className="text-sm text-gray-500">
-            Inicia sesión para continuar
-          </p>
-        </CardHeader>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Fingerprint className="h-8 w-8 text-blue-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Sistema de Asistencia</h1>
+          <p className="text-gray-500 mt-1">Inicia sesión para continuar</p>
+        </div>
 
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Usuario</Label>
-              <Input
-                value={username}
-                onChange={(e) =>
-                  setUsername(e.target.value)
-                }
-                placeholder="Usuario"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="username">Usuario</Label>
+            <Input
+              id="username"
+              type="text"
+              placeholder="Ingresa tu usuario"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              required
+              autoFocus
+              className="mt-1"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label>Contraseña</Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
-                placeholder="contrasena"
-              />
-            </div>
+          <div>
+            <Label htmlFor="password">Contraseña</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Ingresa tu contraseña"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              required
+              className="mt-1"
+            />
+          </div>
 
-            {error && (
-              <p className="text-sm text-red-500">
-                {error}
-              </p>
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Iniciando sesión...
+              </>
+            ) : (
+              'Iniciar Sesión'
             )}
+          </Button>
+        </form>
 
-            <Button
-              type="submit"
-              className="w-full bg-red-600 text-white"
-              disabled={loading}
-            >
-              {loading
-                ? "Ingresando..."
-                : "Entrar"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        <p className="text-xs text-gray-400 text-center mt-6">
+          Sistema de control de asistencia con reconocimiento facial
+        </p>
+      </div>
     </div>
   );
 }

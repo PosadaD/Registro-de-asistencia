@@ -1,10 +1,9 @@
 // app/api/users/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '../../../lib/db';
-import User from '../../../models/User';
+import { connectDB } from '@/lib/db';
+import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 
-// GET - Obtener todos los usuarios
 export async function GET() {
   try {
     await connectDB();
@@ -16,7 +15,6 @@ export async function GET() {
   }
 }
 
-// POST - Crear nuevo usuario
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -51,7 +49,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT - Actualizar usuario (activar/desactivar, cambiar rol, etc)
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
@@ -60,10 +57,14 @@ export async function PUT(request: NextRequest) {
     await connectDB();
     
     const updateData: any = {};
-    if (username) updateData.username = username;
-    if (role) updateData.role = role;
+    
+    // Solo actualizar los campos que vienen en la petición
+    if (username !== undefined) updateData.username = username;
+    if (role !== undefined) updateData.role = role;
     if (active !== undefined) updateData.active = active;
-    if (password) updateData.password = await bcrypt.hash(password, 10);
+    if (password && password.trim() !== '') {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
     
     const user = await User.findByIdAndUpdate(id, updateData, { new: true }).select('-password');
     
@@ -78,7 +79,6 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Eliminar usuario
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

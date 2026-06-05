@@ -1,4 +1,4 @@
-import JustificationForm from "../../../components/justifications/JustificationForm";
+import JustificationForm from "./components/JustificationForm";
 
 export default function JustificationsPage() {
   return (

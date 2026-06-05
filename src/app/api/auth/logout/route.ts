@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+// app/api/auth/logout/route.ts
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST() {
-  const res = NextResponse.json({ success: true });
-
-  res.cookies.set("token", "", { expires: new Date(0) });
-
-  return res;
+  const cookieStore = await cookies();
+  cookieStore.delete('auth_token');
+  
+  return NextResponse.json({ success: true });
 }

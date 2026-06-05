@@ -1,60 +1,65 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
+// middleware.ts (en la raíz del proyecto)
+import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
-export async function middleware(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'tu-secreto-super-seguro-cambia-en-produccion'
+);
 
-  const { pathname } = req.nextUrl;
+// Rutas que no requieren autenticación
+const publicRoutes = ['/login', '/cheker'];
 
-  const publicRoutes = ["/login", "/checker"];
+// Rutas solo para ADMIN
+const adminRoutes = ['/dashboard'];
 
-  const isPublic = publicRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+// Rutas para VIEWER (y también ADMIN puede acceder)
+const viewerRoutes = ['/attendance', '/api/attendance'];
 
-  if (isPublic) {
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Permitir rutas públicas
+  if (publicRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next();
   }
-
-  // no token
+  
+  // Obtener token de la cookie
+  const token = request.cookies.get('auth_token')?.value;
+  
   if (!token) {
-    return NextResponse.redirect(
-      new URL("/login", req.url)
-    );
+    // Redirigir a login si no hay token
+    const url = new URL('/login', request.url);
+    url.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(url);
   }
-
+  
   try {
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET
-    );
-
-    const { payload } = await jwtVerify(
-      token,
-      secret
-    );
-
-    // SOLO ADMIN
-    if (
-      pathname.startsWith("/dashboard/users") &&
-      payload.role !== "ADMIN"
-    ) {
-      return NextResponse.redirect(
-        new URL("/dashboard", req.url)
-      );
+    // Verificar token
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const userRole = payload.role as string;
+    
+    // Verificar acceso a rutas de ADMIN
+    if (adminRoutes.some(route => pathname.startsWith(route)) && userRole !== 'ADMIN') {
+      // VIEWER no puede acceder a dashboard
+      return NextResponse.redirect(new URL('/attendance', request.url));
     }
-
+    
+    // Permitir acceso
     return NextResponse.next();
+    
   } catch (error) {
-    return NextResponse.redirect(
-      new URL("/login", req.url)
-    );
+    // Token inválido
+    const url = new URL('/login', request.url);
+    return NextResponse.redirect(url);
   }
 }
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/viewer/:path*",
+    '/dashboard/:path*',
+    '/attendance/:path*',
+    '/api/users/:path*',
+    '/api/employees/:path*',
+    '/api/attendance/:path*',
   ],
 };

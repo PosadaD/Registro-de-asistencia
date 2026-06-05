@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import EmployeeForm from "../../../components/employees/EmployeeForm";
+import EmployeeForm from "./components/EmployeeForm";
 import { Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 

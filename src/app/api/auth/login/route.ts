@@ -1,93 +1,90 @@
-import { NextResponse } from "next/server";
+// app/api/auth/login/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { connectDB } from '@/lib/db';
+import User from '@/models/User';
+import bcrypt from 'bcryptjs';
+import { SignJWT } from 'jose';
+import { cookies } from 'next/headers';
 
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+// Clave secreta para JWT (debe estar en .env.local)
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'tu-secreto-super-seguro-cambia-en-produccion'
+);
 
-import { connectDB } from "../../../../lib/db";
-import User from "../../../../models/User";
-
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
-    const body = await req.json();
-
-    const { username, password } = body;
-
-    // validar campos
+    const { username, password } = await request.json();
+    
     if (!username || !password) {
       return NextResponse.json(
-        {
-          error: "Usuario y contraseña requeridos",
-        },
+        { error: 'Usuario y contraseña requeridos' },
         { status: 400 }
       );
     }
-
-    // buscar usuario
-    const user = await User.findOne({
-      username,
-    });
-
+    
+    await connectDB();
+    
+    // Buscar usuario
+    const user = await User.findOne({ username, active: true });
+    
     if (!user) {
       return NextResponse.json(
-        {
-          error: "Usuario no encontrado",
-        },
-        { status: 400 }
+        { error: 'Usuario no encontrado o inactivo' },
+        { status: 401 }
       );
     }
-
-    // validar password
-    const validPassword =
-      await bcrypt.compare(
-        password,
-        user.password
-      );
-
-    if (!validPassword) {
+    
+    // Verificar contraseña
+    const isValid = await bcrypt.compare(password, user.password);
+    
+    if (!isValid) {
       return NextResponse.json(
-        {
-          error: "Contraseña incorrecta",
-        },
-        { status: 400 }
+        { error: 'Contraseña incorrecta' },
+        { status: 401 }
       );
     }
-
-    // generar token
-    const token = jwt.sign(
-      {
+    
+    // Actualizar último login
+    user.lastLogin = new Date();
+    user.lastIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    await user.save();
+    
+    // Crear token JWT
+    const token = await new SignJWT({
+      userId: user._id.toString(),
+      username: user.username,
+      role: user.role,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('8h')
+      .sign(JWT_SECRET);
+    
+    // Configurar cookie con el token
+    const cookieStore = await cookies();
+    cookieStore.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 8, // 8 horas
+      path: '/',
+    });
+    
+    // Devolver información del usuario (sin contraseña)
+    return NextResponse.json({
+      success: true,
+      user: {
         id: user._id,
-        name: user.username,
+        username: user.username,
         role: user.role,
       },
-      process.env.JWT_SECRET as string,
-      {
-        expiresIn: "1d",
-      }
-    );
-
-    // response
-    const response = NextResponse.json({
-      ok: true,
+      redirectTo: user.role === 'ADMIN' ? '/dashboard' : '/attendance',
     });
-
-    // cookie
-    response.cookies.set("token", token, {
-      httpOnly: true,
-      path: "/",
-      sameSite: "lax",
-      secure: false,
-    });
-
-    return response;
+    
   } catch (error) {
-    console.error(error);
-
+    console.error('Error en login:', error);
     return NextResponse.json(
-      {
-        error: "Error interno",
-      },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     );
   }
