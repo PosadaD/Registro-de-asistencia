@@ -8,6 +8,7 @@ import { SummaryCards } from './components/SummaryCards';
 import { toast } from 'sonner';
 import { Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AttendancePDFDialog } from './components/AttendancePDFDialog';
 
 interface Attendance {
   _id: string;
@@ -68,21 +69,29 @@ export default function AttendancePage() {
   const loadAttendance = async (start: string, end: string, employee: string) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (start) params.append('startDate', start);
-      if (end) params.append('endDate', end);
-      if (employee) params.append('employeeId', employee);
-      
-      const res = await fetch(`/api/attendance?${params.toString()}`);
-      const data = await res.json();
-      setAttendance(data);
+        // Parámetros para forzar la fecha correcta en la zona horaria local
+        const params = new URLSearchParams();
+        if (start) {
+            // Añade una bandera para indicar que es una fecha local
+            params.append('startDate', start + 'T00:00:00');
+        }
+        if (end) {
+            params.append('endDate', end + 'T23:59:59');
+        }
+        if (employee) params.append('employeeId', employee);
+        // Evita la caché
+        params.append('t', Date.now().toString());
+
+        const res = await fetch(`/api/attendance?${params.toString()}`);
+        const data = await res.json();
+        setAttendance(data);
     } catch (error) {
-      console.error('Error cargando asistencias:', error);
-      toast.error('Error al cargar los registros');
+        console.error('Error cargando asistencias:', error);
+        toast.error('Error al cargar los registros');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   const handleFilter = () => {
     if (!startDate && !endDate) {
@@ -151,10 +160,13 @@ export default function AttendancePage() {
           <h1 className="text-3xl font-bold">Control de Asistencia</h1>
           <p className="text-muted-foreground">Visualización y seguimiento de registros</p>
         </div>
-        <Button onClick={handleToday} variant="outline">
-          <Calendar className="mr-2 h-4 w-4" />
-          Hoy
-        </Button>
+        <div className="flex gap-2">
+          <AttendancePDFDialog />
+          <Button onClick={handleToday} variant="outline">
+            <Calendar className="mr-2 h-4 w-4" />
+            Hoy
+          </Button>
+        </div>
       </div>
 
       {/* Tarjetas de resumen */}

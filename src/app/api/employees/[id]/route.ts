@@ -31,21 +31,17 @@ export async function PUT(
     const body = await request.json();
     await connectDB();
     
-    console.log('Actualizando empleado:', id);
-    console.log('Datos recibidos:', body);
-    
-    const employee = await Employee.findByIdAndUpdate(
-      id, 
-      body, 
-      { new: true, runValidators: true }
-    );
+    const employee = await Employee.findById(id);
     
     if (!employee) {
       return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
     }
-    
-    console.log('Empleado actualizado:', employee);
+
+    Object.assign(employee, body);
+    await employee.save();
+
     return NextResponse.json(employee);
+
   } catch (error) {
     console.error('Error al actualizar:', error);
     return NextResponse.json({ error: 'Error al actualizar' }, { status: 500 });

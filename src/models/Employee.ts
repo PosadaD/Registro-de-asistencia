@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import crypto from "crypto";
 
 const EmployeeSchema = new mongoose.Schema(
   {
@@ -30,6 +31,13 @@ const EmployeeSchema = new mongoose.Schema(
       endTime: String,
     },
 
+    virtualSignature: {
+      type: String,
+      unique: true,
+      sparse: true,
+      default: () => crypto.randomUUID(), // Genera un UUID único
+    },
+
     photo: String,
 
     status: {
@@ -44,11 +52,27 @@ const EmployeeSchema = new mongoose.Schema(
       default: "ACTIVE",
     },
 
+    faceDescriptorHash: {
+      type: String,
+      unique: true,     
+      sparse: true,    
+    },
+
     absenceCount: { type: Number, default: 0 },
     consecutiveAbsenceCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
+
+
+// Middleware pre-save para calcular el hash automáticamente
+EmployeeSchema.pre('save', function(next) {
+  if (this.faceDescriptor && this.isModified('faceDescriptor')) {
+    const descriptorString = JSON.stringify(this.faceDescriptor);
+    this.faceDescriptorHash = crypto.createHash('sha256').update(descriptorString).digest('hex');
+  }
+  next();
+});
 
 export default mongoose.models.Employee ||
   mongoose.model("Employee", EmployeeSchema);   

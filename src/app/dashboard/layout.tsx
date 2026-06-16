@@ -63,8 +63,9 @@ useEffect(() => {
           <LinkItem href="/attendance" label="Asistencias" />
           <LinkItem href="/dashboard/employees" label="Prestadores" />
           <LinkItem href="/dashboard/justifications" label="Justificaciones" />
-          <LinkItem href="/dashboard/reports" label="Reportes" />
+          <LinkItem href="/dashboard/reports" label="Expedientes" />
           <LinkItem href="/dashboard/users" label="Usuarios"/>
+          <LinkItem href="/dashboard/adjust-attendance" label="Ajustar Asistencia"/>
         </nav>
       </aside>
 

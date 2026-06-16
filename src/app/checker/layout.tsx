@@ -1,6 +1,5 @@
 import Link from "next/link"
 
-
 export default function layout ({children}:{children: React.ReactNode}) {
     return(
         <div>
@@ -8,6 +7,7 @@ export default function layout ({children}:{children: React.ReactNode}) {
                 <Link className="p-2" href={"/login"}>Iniciar sesion</Link>
             </nav>
             <main>{children}</main>
+            <footer className="w-full">© Desarrollado por DIEGO POSADA</footer>
         </div>
     )
 }

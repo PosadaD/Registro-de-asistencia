@@ -5,58 +5,46 @@ import Attendance from '@/models/Attendance';
 
 // Manejar GET requests
 export async function GET(request: NextRequest) {
-  try {
-    await connectDB();
-    
-    const { searchParams } = new URL(request.url);
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const employeeId = searchParams.get('employeeId');
-    
-    let query: any = {};
-    
-    // Filtro por fechas
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      
-      query.date = {
-        $gte: start,
-        $lte: end
-      };
-    } else if (startDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      query.date = { $gte: start };
-    } else if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      query.date = { $lte: end };
+    try {
+        await connectDB();
+
+        const { searchParams } = new URL(request.url);
+        const startDateParam = searchParams.get('startDate');
+        const endDateParam = searchParams.get('endDate');
+        const employeeId = searchParams.get('employeeId');
+
+        let query: any = {};
+
+        if (startDateParam && endDateParam) {
+            // Separa la fecha (YYYY-MM-DD) de la hora (HH:MM:SS)
+            const [startDate, startTime] = startDateParam.split('T');
+            const [endDate, endTime] = endDateParam.split('T');
+            
+            const start = new Date(`${startDate}T${startTime || '00:00:00'}`);
+            const end = new Date(`${endDate}T${endTime || '23:59:59'}`);
+            
+            query.date = {
+                $gte: start,
+                $lte: end
+            };
+        } else if (startDateParam) {
+            query.date = { $gte: new Date(startDateParam) };
+        } else if (endDateParam) {
+            query.date = { $lte: new Date(endDateParam) };
+        }
+
+        if (employeeId && employeeId !== 'null') {
+            query.employeeId = employeeId;
+        }
+
+        const attendance = await Attendance.find(query)
+            .populate('employeeId', 'name rfc educationalInstitution')
+            .sort({ date: -1, createdAt: -1 });
+
+        return NextResponse.json(attendance);
+    } catch (error) {
+        // ... manejo de errores
     }
-    
-    // Filtro por empleado
-    if (employeeId) {
-      query.employeeId = employeeId;
-    }
-    
-    console.log('Query:', JSON.stringify(query)); // Debug
-    
-    const attendance = await Attendance.find(query)
-      .populate('employeeId', 'name rfc educationalInstitution')
-      .sort({ date: -1, createdAt: -1 });
-    
-    return NextResponse.json(attendance);
-    
-  } catch (error) {
-    console.error('Error en GET /api/attendance:', error);
-    return NextResponse.json(
-      { error: 'Error al obtener asistencias', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
 }
 
 // Manejar POST requests

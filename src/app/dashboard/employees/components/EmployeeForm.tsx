@@ -244,7 +244,6 @@ export default function EmployeeForm({ onCreated, editingEmployee, open: externa
                           <option value="">Seleccionar</option>
                           <option value="MASCULINO">Masculino</option>
                           <option value="FEMENINO">Femenino</option>
-                          <option value="OTRO">Otro</option>
                         </select>
                       </div>
 
@@ -295,7 +294,7 @@ export default function EmployeeForm({ onCreated, editingEmployee, open: externa
                           >
                             <option value="">Seleccionar</option>
                             <option value="SERVICIO_SOCIAL">Servicio Social</option>
-                            <option value="PRACTICAS">Prácticas Profesionales</option>
+                            <option value="PRACTICAS_PROFESIONALES">Prácticas Profesionales</option>
                           </select>
                         </div>
                         <div>

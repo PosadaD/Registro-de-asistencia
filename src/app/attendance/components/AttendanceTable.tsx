@@ -39,7 +39,7 @@ export function AttendanceTable({ attendance, onEdit }: AttendanceTableProps) {
       return <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">Tarde</span>;
     }
     if (record.checkIn) {
-      return <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">Presente</span>;
+      return <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">Puntual</span>;
     }
     return <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">Sin registro</span>;
   };
@@ -138,12 +138,6 @@ export function AttendanceTable({ attendance, onEdit }: AttendanceTableProps) {
                         <div>
                           <p className="text-gray-500">Método de registro</p>
                           <p className="font-medium capitalize">{record.method}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Fecha de registro</p>
-                          <p className="font-medium text-xs">
-                            {new Date(record.createdAt).toLocaleString()}
-                          </p>
                         </div>
                       </div>
                     </td>
