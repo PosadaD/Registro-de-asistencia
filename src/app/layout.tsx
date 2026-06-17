@@ -12,7 +12,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={cn("font-sans", geist.variable)}>
-      <body>{children}</body>
+      {console.log("© Desarrollado por DIEGO POSADA")}
+      <body>{children}
+        <div className="w-full">© Desarrollado por DIEGO POSADA</div>
+      </body>
     </html>
   );
 }
