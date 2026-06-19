@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
   cellObs: { flex: 1 },
   cellTime: { flex: 1.2 },
   cellSignature: { flex: 1.5 },
-  signatureImage: { width: 30, height: 30, margin: 'auto' },
+  signatureImage: { width: 50, height: 50, margin: 'auto' },
   monthTitle: { fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginVertical: 15 },
 });
 
@@ -79,6 +79,15 @@ export async function POST(request: NextRequest) {
       const rows = businessDays.map(({ dayNumber, dayName }) => {
         const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(dayNumber).padStart(2,'0')}`;
         const att = empAttendances[dateKey];
+         // Si es ausencia
+        if (att && att.isAbsent) {
+          return (
+            <View style={styles.tableRow} key={dateKey}>
+              <Text style={[styles.tableCell, { flex: 0.8 }]}>{dayName} {dayNumber}</Text>
+              <Text style={[styles.tableCell, { flex: 5.2, textAlign: 'left', fontWeight: 'bold' }]}>Ausente</Text>
+            </View>
+          );
+        }
         let checkIn = '', checkOut = '';
         if (att) {
           if (!att.isLate && !att.isAbsent) {

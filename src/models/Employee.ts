@@ -1,78 +1,82 @@
+// models/Employee.ts
 import mongoose from "mongoose";
 import crypto from "crypto";
 
 const EmployeeSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    gender: String,
+    gender: {
+      type: String,
+      enum: ["MASCULINO", "FEMENINO", "OTRO"],
+      default: "OTRO",
+    },
 
     rfc: String,
     shortRfc: String,
     curp: String,
 
-    faceDescriptor: {
-      type: [Number], // Array de números (Float32Array convertido)
-      required: false,
-      index: true,
-    },
-
     immediateBoss: String,
     educationalInstitution: String,
     semester: String,
 
-    providerType: String,
-    economicSupport: Boolean,
+    providerType: {
+      type: String,
+      enum: ["INTERNO", "EXTERNO", "SERVICIO_SOCIAL", "PRACTICAS"],
+      default: "INTERNO",
+    },
+    economicSupport: { type: Boolean, default: false },
 
     startDate: { type: Date, required: true },
     endDate: Date,
 
     workSchedule: {
-      startTime: String,
-      endTime: String,
-    },
-
-    virtualSignature: {
-      type: String,
-      unique: true,
-      sparse: true,
-      default: () => crypto.randomUUID(), // Genera un UUID único
+      startTime: { type: String, default: "09:00" },
+      endTime: { type: String, default: "13:00" },
     },
 
     photo: String,
 
     status: {
       type: String,
-      enum: [
-        "ACTIVE",
-        "DISMISSED",
-        "VOLUNTARY_LEAVE",
-        "OTHER",
-        "FINISHED",
-      ],
+      enum: ["ACTIVE", "DISMISSED", "VOLUNTARY_LEAVE", "OTHER", "FINISHED"],
       default: "ACTIVE",
-    },
-
-    faceDescriptorHash: {
-      type: String,
-      unique: true,     
-      sparse: true,    
     },
 
     absenceCount: { type: Number, default: 0 },
     consecutiveAbsenceCount: { type: Number, default: 0 },
+
+    faceDescriptor: {
+      type: [Number],
+      required: false,
+      index: true,
+    },
+
+    faceDescriptorHash: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+
+    virtualSignature: {
+      type: String,
+      unique: true,
+      sparse: true,
+      default: () => crypto.randomUUID(),
+    },
   },
   { timestamps: true }
 );
 
-
-// Middleware pre-save para calcular el hash automáticamente
-EmployeeSchema.pre('save', function(next) {
+// Middleware asíncrono SIN next()
+EmployeeSchema.pre('save', async function() {
+  // Si hay faceDescriptor y ha sido modificado, recalcular hash
   if (this.faceDescriptor && this.isModified('faceDescriptor')) {
     const descriptorString = JSON.stringify(this.faceDescriptor);
     this.faceDescriptorHash = crypto.createHash('sha256').update(descriptorString).digest('hex');
   }
-  next();
+  // Al ser async, Mongoose espera a que termine la función
+  // No se necesita llamar a next()
 });
 
 export default mongoose.models.Employee ||
-  mongoose.model("Employee", EmployeeSchema);   
+  mongoose.model("Employee", EmployeeSchema);

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AttendanceRecord {
@@ -115,6 +115,76 @@ export default function AdjustAttendancePage() {
 };
   const markAsPresent = () => applyUpdate({ isAbsent: false });
 
+const markAbsences = async (mode: 'create_only' | 'overwrite') => {
+  if (!startDate || !endDate) {
+    toast.error('Selecciona un rango de fechas');
+    return;
+  }
+
+  let confirmMessage = '';
+  if (mode === 'create_only') {
+    confirmMessage = `⚠️ Esta acción creará registros de ausencia para TODOS los empleados activos en los días hábiles entre ${startDate} y ${endDate} que NO tengan registro previo. ¿Continuar?`;
+  } else {
+    confirmMessage = `⚠️ Esta acción SOBRESCRIBIRÁ TODOS los registros de asistencia existentes en el rango ${startDate} - ${endDate}, convirtiéndolos en AUSENCIAS. Los datos de entrada/salida se perderán. ¿Continuar?`;
+  }
+
+  if (!confirm(confirmMessage)) return;
+
+  setLoading(true);
+  try {
+    const res = await fetch('/api/attendance/mark-absences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate, endDate, mode }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast.success(`✅ Procesado: ${data.details?.length || 0} empleados.`);
+      loadRecords();
+    } else {
+      toast.error(data.error || 'Error');
+    }
+  } catch (error) {
+    toast.error('Error de conexión');
+  } finally {
+    setLoading(false);
+  }
+};
+
+// En adjust-attendance/page.tsx
+
+const overwriteSelected = async () => {
+  if (selectedIds.length === 0) {
+    toast.error('Selecciona al menos un registro');
+    return;
+  }
+
+  if (!confirm(`⚠️ Sobrescribirás ${selectedIds.length} registro(s) seleccionado(s) como FALTA. Los datos de entrada/salida se perderán. ¿Continuar?`)) return;
+
+  setLoading(true);
+  try {
+    const res = await fetch('/api/attendance/mark-absences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedIds, mode: 'overwrite' }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast.success(`✅ Sobrescritos ${data.details?.updated || 0} registros`);
+      loadRecords();
+      setSelectedIds([]);
+    } else {
+      toast.error(data.error || 'Error');
+    }
+  } catch (error) {
+    toast.error('Error de conexión');
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
   return (
     <div className="space-y-6">
       <div>
@@ -141,6 +211,12 @@ export default function AdjustAttendancePage() {
 
       {/* Botones de acción masiva */}
       <div className="flex gap-3">
+        <Button variant="outline" onClick={() => markAbsences('create_only')} disabled={loading}>
+          <AlertCircle className="mr-2 h-4 w-4" /> Marcar ausencias automáticas
+        </Button>
+        <Button variant="destructive" onClick={overwriteSelected} disabled={loading || selectedIds.length === 0}>
+          <AlertCircle className="mr-2 h-4 w-4" />Sobrescribir seleccionados como faltas
+        </Button>
         <Button variant="outline" onClick={adjustProportionally} disabled={selectedIds.length === 0}>
           <CheckCircle className="mr-2 h-4 w-4" /> Quitar marca de tarde (Ajustar horario)
         </Button>

@@ -64,3 +64,4 @@ export const config = {
     '/api/attendance/:path*',
   ],
 };
+
