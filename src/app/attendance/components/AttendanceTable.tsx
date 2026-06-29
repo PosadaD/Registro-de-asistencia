@@ -1,7 +1,7 @@
 // components/attendance/AttendanceTable.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Clock, User, Calendar } from 'lucide-react';
 
@@ -81,8 +81,8 @@ export function AttendanceTable({ attendance, onEdit }: AttendanceTableProps) {
           </thead>
           <tbody>
             {attendance.map((record) => (
-              <>
-                <tr key={record._id} className="border-t hover:bg-gray-50">
+              <Fragment key={record._id}>
+                <tr className="border-t hover:bg-gray-50">
                   <td className="p-3 font-medium">
                     {record.employeeId?.name || 'No asignado'}
                     <p className="text-xs text-gray-500">{record.employeeId?.educationalInstitution}</p>
@@ -143,7 +143,7 @@ export function AttendanceTable({ attendance, onEdit }: AttendanceTableProps) {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
